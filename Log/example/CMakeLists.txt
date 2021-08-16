@@ -1,0 +1,11 @@
+add_executable(example_LogLevel example_LogLevel.cpp)
+target_link_libraries(example_LogLevel log_srcs)
+
+add_executable(example_LogEvent example_LogEvent.cpp)
+target_link_libraries(example_LogEvent log_srcs)
+
+add_executable(example_LogFormatter example_LogFormatter.cpp)
+target_link_libraries(example_LogFormatter log_srcs)
+
+add_executable(example_test example_test.cpp)
+target_link_libraries(example_test log_srcs)
