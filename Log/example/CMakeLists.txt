@@ -7,5 +7,8 @@ target_link_libraries(example_LogEvent log_srcs)
 add_executable(example_LogFormatter example_LogFormatter.cpp)
 target_link_libraries(example_LogFormatter log_srcs)
 
+add_executable(example_Logger example_Logger.cpp)
+target_link_libraries(example_Logger log_srcs)
+
 add_executable(example_test example_test.cpp)
 target_link_libraries(example_test log_srcs)
