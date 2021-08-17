@@ -277,46 +277,60 @@ namespace tensir
 
     void LogFormatter::init()
     {
+
+        /**
+         * 1. 从左往右扫描，第一个不为%的，用nstr存储普通字符
+         * 2. 碰到第一个%，开始解析，如果下一个为%，当前认定为普通字符，直接append到nstr，否则，进入3
+         * 3. 从%下一个字符开始，直到解析出非alpha，得到当前的格式化类型标记（如d，T等）
+         * 4. 如果当前格式化类型标记紧跟{则认为是格式化模式，例如日期模式{%Y-%m-%d %H:%M:%S}，开始解析日期，否则，直接加入到vec
+         * 5. 对于需要解析日期模式的，需要使用fmt_status标记是否结束扫描{}，fmt_begin记录{位置，来提取出%Y-%m-%d %H:%M:%S
+         * 6. 遍历vec三元组，得到最终的格式项列表，每一个项根据实际情况解析
+         */
+
         //str, format, type
         std::vector<std::tuple<std::string, std::string, int> > vec;
-        std::string nstr;
+        std::string nstr; // 非格式化串（普通字符串）
         for (size_t i = 0; i < m_pattern.size(); ++i)
         {
-            if (m_pattern[i] != '%')
+            /**
+             * 开始两个if吃掉m_pattern前面不需要格式化的普通字符串（非%开始的所有字符串）,并保存在nstr中，
+             */
+            if (m_pattern[i] != '%') // 为经过检查的第一个字符，如果不为%直接解析为普通字符
             {
                 nstr.append(1, m_pattern[i]);
                 continue;
             }
 
-            if ((i + 1) < m_pattern.size())
+            if ((i + 1) < m_pattern.size() && m_pattern[i + 1] == '%') // 两个%%相邻表示转义，解析为一个%
             {
-                if (m_pattern[i + 1] == '%')
-                {
-                    nstr.append(1, '%');
-                    continue;
-                }
+                nstr.append(1, '%');
+                continue;
             }
 
+            /**
+             * 遇到%，且%后面为可解析item（不为%），开始做解析
+             */
             size_t n = i + 1;
-            int fmt_status = 0;
-            size_t fmt_begin = 0;
+            int fmt_status = 0; // {}在本程序中为特殊字符，必须成对出现，该flag标记{}是否出错
+            size_t fmt_begin = 0; // item格式开始位置（ "%d{}" 为 '{' 的位置）
 
-            std::string str;
-            std::string fmt;
+            std::string str; // item标记（d、T等）
+            std::string fmt; // item格式（仅针对日期才有，其他为空）
             while (n < m_pattern.size())
             {
-                if (!fmt_status && (!isalpha(m_pattern[n]) && m_pattern[n] != '{' && m_pattern[n] != '}'))
+                if (!fmt_status && (!isalpha(m_pattern[n]) && m_pattern[n] != '{' && m_pattern[n] != '}'))//解析除日期格式解析的其他项如%T
                 {
+                    
                     str = m_pattern.substr(i + 1, n - i - 1);
+                    std::cout<<"in "<<str<<","<<m_pattern[n]<<","<<i<<","<<n<<std::endl;
                     break;
                 }
                 if (fmt_status == 0)
                 {
-                    if (m_pattern[n] == '{')
+                    if (m_pattern[n] == '{') // item格式开始
                     {
                         str = m_pattern.substr(i + 1, n - i - 1);
-                        //std::cout << "*" << str << std::endl;
-                        fmt_status = 1; //解析格式
+                        fmt_status = 1; //解析item格式
                         fmt_begin = n;
                         ++n;
                         continue;
@@ -324,10 +338,9 @@ namespace tensir
                 }
                 else if (fmt_status == 1)
                 {
-                    if (m_pattern[n] == '}')
+                    if (m_pattern[n] == '}') // item格式结束
                     {
                         fmt = m_pattern.substr(fmt_begin + 1, n - fmt_begin - 1);
-                        //std::cout << "#" << fmt << std::endl;
                         fmt_status = 0;
                         ++n;
                         break;
@@ -345,15 +358,15 @@ namespace tensir
 
             if (fmt_status == 0)
             {
-                if (!nstr.empty())
+                if (!nstr.empty()) // 开始有普通串，直接加入到vec中，标记为0
                 {
                     vec.push_back(std::make_tuple(nstr, std::string(), 0));
                     nstr.clear();
                 }
-                vec.push_back(std::make_tuple(str, fmt, 1));
+                vec.push_back(std::make_tuple(str, fmt, 1)); // 需要解析的字符串，标记为1
                 i = n - 1;
             }
-            else if (fmt_status == 1)
+            else if (fmt_status == 1) // {}必须成对存在，否则报错
             {
                 std::cout << "pattern parse error: " << m_pattern << " - " << m_pattern.substr(i) << std::endl;
                 m_error = true;
@@ -388,6 +401,8 @@ namespace tensir
 
         for (auto &i : vec)
         {
+            std::cout << "(" << std::get<0>(i) << ") - (" << std::get<1>(i) << ") - (" << std::get<2>(i) << ")" << std::endl;
+
             if (std::get<2>(i) == 0)
             {
                 m_items.push_back(FormatItem::ptr(new StringFormatItem(std::get<0>(i))));

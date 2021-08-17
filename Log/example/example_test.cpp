@@ -5,8 +5,85 @@
 
 using namespace std;
 
+class Policy
+{
+public:
+    virtual void inputPassword()
+    {
+        cout << "输入密码" << endl;
+    }
+
+    virtual void auth() = 0;
+    virtual void inputAmount() = 0;
+    virtual void enter() = 0;
+    virtual void exit() = 0;
+
+    void putMoney()
+    {
+        inputPassword();
+        auth();
+        inputAmount();
+        enter();
+        exit();
+    }
+};
+
+class Cash : public Policy
+{
+public:
+    void auth()
+    {
+        cout << "插卡" << endl;
+    }
+
+    void inputAmount()
+    {
+        cout << "atm 输入金额" << endl;
+    }
+
+    void enter()
+    {
+        cout << "按下确认按钮" << endl;
+    }
+
+    void exit()
+    {
+        cout << "拔卡" << endl;
+    }
+};
+
+class Online : public Policy
+{
+public:
+    void inputPassword()
+    {
+        cout << "人脸免密" << endl;
+    }
+    void auth()
+    {
+        cout << "键盘输入密码" << endl;
+    }
+
+    void inputAmount()
+    {
+        cout << "键盘输入金额" << endl;
+    }
+
+    void enter()
+    {
+        cout << "按下回车按钮" << endl;
+    }
+
+    void exit()
+    {
+        cout << "拔卡" << endl;
+    }
+};
+
 int main()
 {
+
+
     string pattern = "%d{%Y-%m-%d %H:%M:%S}%T%t%T%N%T%F%T[%p]%T[%c]%T%f:%l%T%m%n";
 
     int i = 0;
@@ -47,13 +124,13 @@ int main()
         }
         else if (isalpha(pattern[i]))
         {
-            formateItem[""+pattern[i]] = pattern[i];
+            formateItem["" + pattern[i]] = pattern[i];
         }
         else if (pattern[i] != '%')
         {
             formateItem["str"] = pattern[i];
         }
-        else if(pattern[i] == '%' && i + 1 < pattern.size() && pattern[i] == '%')
+        else if (pattern[i] == '%' && i + 1 < pattern.size() && pattern[i] == '%')
         {
             formateItem["str"] = "%";
         }
